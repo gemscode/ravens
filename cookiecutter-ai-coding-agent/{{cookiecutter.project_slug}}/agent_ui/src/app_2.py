@@ -3,8 +3,6 @@ import pandas as pd
 from redis.cluster import RedisCluster
 from kafka import KafkaAdminClient
 from kafka.errors import KafkaError
-from kubernetes import client as k8s_client, config as k8s_config
-import time
 from agent_core.interfaces.config import AppConfig
 from agent_core.shared_utils.data import validate_file_format, process_events
 from agent_kafka.src.consumer import KafkaStreamProcessor
@@ -97,65 +95,61 @@ if st.button("Build & Deploy"):
             # Data Processing
             st.write("🛠️ Processing data...")
             if data_source == "File Upload":
+                # File upload handling remains the same
+                pass
+            else:
+                st.write(f"📡 Connecting to Kafka topic: {kafka_topic}")
+                
+                # Deploy to Kubernetes
+                st.write("🚢 Building Docker container...")
+                # Code to build Docker image would be here
+                
+                st.write("🚀 Deploying to Kubernetes...")
+                deployment_name = deploy_to_kubernetes(kafka_topic)
+                
+                st.write("⏳ Waiting for deployment to be ready...")
+                # Wait for deployment to be ready
+                apps_v1_api = client.AppsV1Api()
+                deployment = apps_v1_api.read_namespaced_deployment(
+                    name=deployment_name,
+                    namespace="default"
+                )
+                
+                # Get video view counts
+                redis_client = RedisCluster(
+                    startup_nodes=config.redis_nodes,
+                    decode_responses=True
+                )
+                
+                view_counts = get_video_views(redis_client, kafka_topic)
+                
+                # Display results
+                st.success("Deployment completed!")
+                
+                st.subheader("Video View Counts")
+                df = pd.DataFrame(
+                    list(view_counts.items()),
+                    columns=["Video ID", "View Count"]
+                )
+                st.dataframe(df)
+                
+        except Exception as e:
+            st.error(f"Deployment failed: {str(e)}")
+        try:
+            # Data Processing
+            st.write("🛠️ Processing data...")
+            if data_source == "File Upload":
                 if not validate_file_format(uploaded_file):
                     st.error("Invalid file format!")
                     st.stop()
                 results = process_events(uploaded_file, config)
             else:
+                processor = KafkaStreamProcessor(config)
                 st.write("Processing Kafka Stream...")
                 try:
                     st.write(f"📡 Connecting to Kafka topic: {kafka_topic}")
-                    
-                    # Build and deploy to Kubernetes instead of direct processing
-                    st.write("🚢 Building Docker container...")
-                    # (In a real app, add Docker build logic here)
-                    
-                    st.write("🚀 Deploying to Kubernetes...")
-                    deployment_name = deploy_to_kubernetes(kafka_topic)
-                    
-                    st.write("⏳ Waiting for deployment to be ready...")
-                    # Initialize Kubernetes client
-                    try:
-                        k8s_config.load_kube_config()
-                    except:
-                        k8s_config.load_incluster_config()
-                    
-                    apps_v1_api = k8s_client.AppsV1Api()  # Create client API instance
-                    
-                    # Wait for deployment to be ready
-                    max_retries = 10
-                    for i in range(max_retries):
-                        try:
-                            deployment = apps_v1_api.read_namespaced_deployment(
-                                name=deployment_name,
-                                namespace="default"
-                            )
-                            if deployment.status.available_replicas == 1:
-                                break
-                            time.sleep(2)
-                        except Exception as e:
-                            if i == max_retries - 1:
-                                raise Exception(f"Deployment not ready: {str(e)}")
-                            time.sleep(2)
-                    
-                    # Get video view counts from Redis
-                    st.write("📊 Retrieving view counts...")
-                    redis_client = RedisClient(config)
-                    view_counts = redis_client.get_video_views(kafka_topic)
-                    
-                    # Display results
-                    st.success("Deployment completed!")
-                    st.subheader("Video View Counts")
-                    
-                    if view_counts:
-                        df = pd.DataFrame(
-                            list(view_counts.items()),
-                            columns=["Video ID", "View Count"]
-                        )
-                        st.dataframe(df)
-                    else:
-                        st.info("No view counts found yet. The consumer may still be processing messages.")
-                    
+                    processor.process_stream(kafka_topic)
+                    st.success("Real-time processing started!")
                 except Exception as e:
                     st.error(f"Kafka processing failed: {str(e)}")
                     st.stop()
@@ -165,6 +159,7 @@ if st.button("Build & Deploy"):
             st.write("🚀 Deploying to Kubernetes...")
             
             st.success("Deployment completed!")
+            st.markdown("[View Live App](#)", unsafe_allow_html=True)
             
         except Exception as e:
             st.error(f"Deployment failed: {str(e)}")

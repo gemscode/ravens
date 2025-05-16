@@ -3,13 +3,9 @@ import pandas as pd
 from redis.cluster import RedisCluster
 from kafka import KafkaAdminClient
 from kafka.errors import KafkaError
-from kubernetes import client as k8s_client, config as k8s_config
-import time
 from agent_core.interfaces.config import AppConfig
 from agent_core.shared_utils.data import validate_file_format, process_events
 from agent_kafka.src.consumer import KafkaStreamProcessor
-from agent_kubernetes.src.deployer import deploy_to_kubernetes
-from agent_redis.src.client import RedisClient
 
 # Basic UI Setup
 st.set_page_config(page_title="AI Coding Agent", layout="wide")
@@ -102,60 +98,12 @@ if st.button("Build & Deploy"):
                     st.stop()
                 results = process_events(uploaded_file, config)
             else:
+                processor = KafkaStreamProcessor(config)
                 st.write("Processing Kafka Stream...")
                 try:
                     st.write(f"📡 Connecting to Kafka topic: {kafka_topic}")
-                    
-                    # Build and deploy to Kubernetes instead of direct processing
-                    st.write("🚢 Building Docker container...")
-                    # (In a real app, add Docker build logic here)
-                    
-                    st.write("🚀 Deploying to Kubernetes...")
-                    deployment_name = deploy_to_kubernetes(kafka_topic)
-                    
-                    st.write("⏳ Waiting for deployment to be ready...")
-                    # Initialize Kubernetes client
-                    try:
-                        k8s_config.load_kube_config()
-                    except:
-                        k8s_config.load_incluster_config()
-                    
-                    apps_v1_api = k8s_client.AppsV1Api()  # Create client API instance
-                    
-                    # Wait for deployment to be ready
-                    max_retries = 10
-                    for i in range(max_retries):
-                        try:
-                            deployment = apps_v1_api.read_namespaced_deployment(
-                                name=deployment_name,
-                                namespace="default"
-                            )
-                            if deployment.status.available_replicas == 1:
-                                break
-                            time.sleep(2)
-                        except Exception as e:
-                            if i == max_retries - 1:
-                                raise Exception(f"Deployment not ready: {str(e)}")
-                            time.sleep(2)
-                    
-                    # Get video view counts from Redis
-                    st.write("📊 Retrieving view counts...")
-                    redis_client = RedisClient(config)
-                    view_counts = redis_client.get_video_views(kafka_topic)
-                    
-                    # Display results
-                    st.success("Deployment completed!")
-                    st.subheader("Video View Counts")
-                    
-                    if view_counts:
-                        df = pd.DataFrame(
-                            list(view_counts.items()),
-                            columns=["Video ID", "View Count"]
-                        )
-                        st.dataframe(df)
-                    else:
-                        st.info("No view counts found yet. The consumer may still be processing messages.")
-                    
+                    processor.process_stream(kafka_topic)
+                    st.success("Real-time processing started!")
                 except Exception as e:
                     st.error(f"Kafka processing failed: {str(e)}")
                     st.stop()
@@ -165,6 +113,7 @@ if st.button("Build & Deploy"):
             st.write("🚀 Deploying to Kubernetes...")
             
             st.success("Deployment completed!")
+            st.markdown("[View Live App](#)", unsafe_allow_html=True)
             
         except Exception as e:
             st.error(f"Deployment failed: {str(e)}")

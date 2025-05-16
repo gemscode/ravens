@@ -1,0 +1,4 @@
+# agent_kafka/requirements.txt
+kafka-python>=2.0.2
+redis>=4.1.0
+
