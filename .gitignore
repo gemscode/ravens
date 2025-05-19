@@ -183,3 +183,4 @@ agent_worker/manifests/*secret*.yaml
 # Exclude Kubernetes secrets anywhere in the project
 **/secret.yaml
 **/secrets/
+uploads/
