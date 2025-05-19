@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-processor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resume-processor
+  template:
+    metadata:
+      labels:
+        app: resume-processor
+    spec:
+      containers:
+      - name: processor
+        image: docker.io/library/resume-processor:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ELASTIC_HOST
+          value: "htt://elasticsearch:9200"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "192.168.2.201:9092"
+        - name: GROQ_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: grok-secret
+              key: api-key
+

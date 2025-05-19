@@ -174,4 +174,12 @@ cython_debug/
 .pypirc
 
 /cookiecutter-ai-coding-agent/
+agent_worker/manifests/*secret*.yaml
 
+# Exclude Docker image tarballs
+*.tar
+*.tar.gz
+
+# Exclude Kubernetes secrets anywhere in the project
+**/secret.yaml
+**/secrets/

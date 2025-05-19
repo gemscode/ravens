@@ -1,0 +1,9 @@
+# agent_worker/manifests/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  elastic_host: "http://elasticsearch:9200"
+  kafka_brokers: "kafka:9092"
+

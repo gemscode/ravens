@@ -1,0 +1,30 @@
+from langchain import PyPDFLoader
+from unstructured.partition.pdf import partition_pdf
+import ollama
+import json
+
+def process_resume_pdf(file_path):
+    # Load and partition PDF
+    elements = partition_pdf(file_path)
+    
+    # Create prompt for LLM extraction
+    prompt = """Extract the following information from the resume text in JSON format:
+    - companies: list of company names with periods
+    - projects: list of projects with client names and descriptions
+    - education: educational background
+    - technologies: list of technologies used
+    - titles: list of job titles held
+    
+    Format the output as valid JSON."""
+    
+    # Process with LLM
+    response = ollama.generate(
+        model="llama2",
+        prompt=prompt + str(elements)
+    )
+    
+    # Parse structured data
+    try:
+        return json.loads(response.text)
+    except:
+        return {"error": "Failed to parse resume data"}

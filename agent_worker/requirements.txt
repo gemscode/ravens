@@ -1,0 +1,11 @@
+kafka-python
+elasticsearch
+groq
+pdfminer.six
+python-docx
+pybreaker
+python-dotenv
+redis
+jsonschema
+pydantic-settings>=2.0.3  # Or latest version
+
