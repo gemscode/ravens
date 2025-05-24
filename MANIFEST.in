@@ -1,0 +1,6 @@
+# MANIFEST.in
+include *.sh
+include *.txt
+include LICENSE
+recursive-include docs *
+
