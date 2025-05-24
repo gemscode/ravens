@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-
 # Virtualenv aigenv
 python3 -m venv aigenv
 source aigenv/bin/activate
