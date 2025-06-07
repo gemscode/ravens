@@ -1,5 +1,4 @@
 # Editable install with no version control (ai-coding-agent==0.1.0)
--e /home/alphaxcc/meta/poc/cookiecutter-ai-coding-agent/{{cookiecutter.project_slug}}
 altair==5.5.0
 annotated-types==0.7.0
 anyio==4.9.0
@@ -15,7 +14,7 @@ charset-normalizer==3.4.2
 click==8.2.0
 cloudpickle==3.1.1
 cookiecutter==2.6.0
-crewai==0.120.1
+#crewai==0.120.1
 cryptography==44.0.3
 distro==1.9.0
 docker==7.1.0

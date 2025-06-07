@@ -176,3 +176,7 @@ cython_debug/
 uploads/
 resume.process.tar
 .env
+aigenv/
+*.egg-info/
+ai_coding_agent.egg-info/
+

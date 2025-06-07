@@ -18,36 +18,52 @@ This application allows you to:
 
 ## ⚡️ Quickstart & Architecture
 
-### 1. Environment Configuration
+### 1. Initial Installation
 
-Before running anything, create or edit a `.env` file in the project root with your desired host and port settings:
+```bash
+./install.sh
+```
 
-```
-KAFKA_HOST=192.168.2.200
-REDIS_HOST=192.168.2.200
-K3S_HOST=192.168.2.200
-K3S_PORT=6444
-```
+This will:
+
+- Create a virtual environment (`aigenv`) if not present
+- Install all required Python dependencies from `requirements.txt`
+- Create a `.env` file (if missing) from `.env_sample`
 
 ---
 
-### 2. Infrastructure Options
+### 2. Launch Everything
+
+```bash
+./start.sh
+```
+
+This will:
+
+- Auto-detect and populate your system’s IP in the `.env` file
+- Start Kafka, Redis, and Kubernetes (k3s) locally (if needed)
+- Deploy a default Kafka topic and load the consumer agent image
+- Launch the Streamlit UI
+
+> ⚠️ **Note:** On the first deployment only, you may need to click **"Build & Deploy"** a second time after the container is created. This is a one-time sync issue.
+
+---
+
+### 3. Infrastructure Options
 
 **Out-of-the-Box (Default):**  
 This project provides Docker Compose files for Kafka and Redis, and a Docker-based k3s Kubernetes cluster. You can run everything locally without any external dependencies.
 
 **Bring Your Own Infrastructure:**  
-If you already have Kafka, Redis, or Kubernetes running elsewhere, you do **not** need to use the provided Docker Compose files or the k3s Docker setup.  
-- Set the appropriate host and port values in your `.env` file.
-- The `start.sh` script will detect your running infrastructure and skip starting local containers.
+If you already have Kafka, Redis, or Kubernetes running elsewhere:
+- Set the appropriate host and port values in your `.env` file
+- `start.sh` will detect your running infrastructure and skip starting local containers
 
 ---
 
-### 3. Directory Structure for Provided Docker Infrastructure
+### 4. Directory Structure for Provided Docker Infrastructure
 
-> **Note:**  
-> The following directory structure is **only relevant if you use the out-of-the-box Docker infrastructure**.  
-> This is **not** the project root tree.
+> **Note:** This applies only if you're using the included Kafka/Redis/k3s setup.
 
 ```
 agent_deployment/
@@ -65,18 +81,13 @@ start.sh                      # Main deployment script
 
 ---
 
-### 4. How Startup Works
+### 5. How Startup Works
 
-- If you use the provided Docker Compose and k3s Docker setup, `start.sh` will:
-  - Start Kafka, Redis, and k3s if they are not already running.
-  - Create the Kafka topic if missing.
-  - Build and load the Kafka consumer image into k3s.
-  - Launch the Streamlit UI.
-
-- If you have your own infrastructure, `start.sh` will:
-  - Detect your running services (based on `.env`).
-  - Skip starting local containers.
-  - Only build/load the consumer image and start the UI.
+- `start.sh` checks for `.env`, virtualenv, and infrastructure readiness
+- Starts Kafka, Redis, and k3s (if needed)
+- Creates Kafka topic and builds the consumer image
+- Loads the image into the local Kubernetes cluster
+- Launches the Streamlit UI for interactive control
 
 ---
 
@@ -84,56 +95,51 @@ start.sh                      # Main deployment script
 
 ### 1. User Input via UI
 
-- The user provides a Kafka topic name (or uploads a file) in the Streamlit web interface.
+- The user provides a Kafka topic name (or uploads a file) in the Streamlit web interface
 
 ### 2. Pre-deployment Checks
 
-- The app verifies connectivity to both Kafka (topic existence) and Redis (cluster health).
+- Kafka and Redis connectivity and configuration are verified
 
 ### 3. Agent Generation and Deployment
 
-Upon user action, the app:
-
-- **Builds a Docker container** containing a Kafka consumer agent, configured to consume from the specified Kafka topic and write view counts to Redis.
-- **Deploys the container to Kubernetes** as a pod (or deployment) using the Kubernetes Python client.
+- A Docker container is built with a Kafka consumer agent
+- The container is deployed to Kubernetes using the Python client
 
 ### 4. Real-Time Data Processing
 
-- The deployed Kafka consumer agent:
-  - Subscribes to the specified Kafka topic.
-  - Consumes messages (e.g., video view events) in real time.
-  - Updates per-video view counts in Redis using a key structure like `video_views:{topic}:{video_id}`.
+- The agent:
+  - Subscribes to the topic
+  - Consumes messages
+  - Updates Redis using `video_views:{topic}:{video_id}` keys
 
 ### 5. Monitoring and Visualization
 
-- The Streamlit app:
-  - Monitors the Kubernetes deployment status.
-  - Once the consumer is running, queries Redis for the current view counts for the given topic.
-  - Displays the live counts in the UI as a table for user inspection.
+- The UI shows deployment status and live video view counts pulled from Redis
 
 ### 6. Self-Service, Automated, and Extensible
 
-- The entire process—from topic selection to deployment and monitoring—is automated and repeatable via the UI.
-- The architecture is modular: you can adapt it for other event types, data sinks, or cloud environments.
+- The pipeline is fully managed from the UI and designed for easy customization
 
 ---
 
 ## 🧰 Key Technologies Used
 
-- **Apache Kafka**: For scalable, durable message streaming.
-- **Redis**: For fast, scalable, in-memory view count storage.
-- **Docker**: To containerize the Kafka consumer agent for portability and reproducibility.
-- **Kubernetes (k3s)**: For orchestrating and scaling consumer agents as pods/deployments.
-- **Streamlit**: For the interactive web UI that ties the workflow together.
-- **Python**: For backend logic and integration.
+- **Apache Kafka** — Real-time event streaming
+- **Redis** — Fast in-memory storage
+- **Docker** — Agent containerization
+- **Kubernetes (k3s)** — Lightweight orchestrator
+- **Streamlit** — Web-based control UI
+- **Python** — Backend logic
 
 ---
 
 ## 💡 What Makes It Powerful
 
-- **Automated Agent Deployment**: The system doesn’t just process data—it dynamically builds, deploys, and manages the agents that do the work, all from a single UI.
-- **Real-Time Feedback Loop**: Users see live updates on view counts as soon as the consumer is deployed and running.
-- **Cloud-Native, Modular Design**: Easily extensible for new topics, data sources, or output sinks, and ready for production-scale workloads.
+- **No manual steps**: Just run `./install.sh` then `./start.sh`
+- **Live monitoring**: Real-time stream ingestion + visualization
+- **Fully pluggable**: Bring your own infra or use the default stack
+- **Easily extendable**: Swap Redis, change agent logic, or deploy to cloud clusters
 
 ---
 
@@ -143,54 +149,33 @@ Upon user action, the app:
 
 - Python 3.9+
 - [Docker](https://docs.docker.com/get-docker/)
-- [k3s](https://k3s.io/) (runs in Docker, started by `start.sh`)
-- [Kafka](https://kafka.apache.org/) (Docker Compose included)
-- [Redis](https://redis.io/) (Docker Compose included)
+- [k3s](https://k3s.io/) (runs inside Docker)
+- [Kafka](https://kafka.apache.org/)
+- [Redis](https://redis.io/)
 - [Streamlit](https://streamlit.io/)
-
-### Installation
-
-```bash
-git clone https://github.com/yourusername/ai-coding-agent.git
-cd ai-coding-agent
-
-# Install Python dependencies
-pip install -r requirements.txt
-```
 
 ---
 
-### Running the Infrastructure and UI
+### Running the Platform
 
 ```bash
-# 1. Ensure .env is configured as shown above
-# 2. Start all infrastructure and UI
+./install.sh
 ./start.sh
 ```
 
-- This will:
-  - Start Kafka, Redis, and k3s (if not already running)
-  - Create the Kafka topic if missing
-  - Build and load the consumer image into k3s
-  - Launch the Streamlit UI
-
----
-
-### Normal Operation
-
-- **Access the UI** at [http://localhost:8501](http://localhost:8501)
-- **Deploy the consumer** for a topic using the UI (this is the only step that is repeated per topic)
-- **View live counts** as they are processed and stored in Redis
+This will:
+- Set up everything (env, dependencies, infra)
+- Launch the web UI at [http://localhost:8501](http://localhost:8501)
 
 ---
 
 ## 🖥️ Usage
 
-1. **Access the Streamlit UI** at `localhost:8501`.
-2. **Enter a Kafka topic name** (or upload a CSV file).
-3. **Click "Build & Deploy"** to launch the pipeline.
-4. **Monitor deployment progress** in real time.
-5. **View live video view counts** in the results table.
+1. Visit [http://localhost:8501](http://localhost:8501)
+2. Enter a Kafka topic name or upload a CSV
+3. Click **"Build & Deploy"**
+4. Wait for the deployment to complete (click twice only on first run)
+5. See live view counts appear in the table
 
 ---
 
@@ -205,8 +190,6 @@ pip install -r requirements.txt
 
 ## 📊 Redis Data Structure
 
-The consumer writes view counts to a single Redis hash:
-
 ```
 HGETALL video_views
 # Returns: { "video_1": "count", "video_2": "count", ... }
@@ -216,10 +199,10 @@ HGETALL video_views
 
 ## 🧩 Extending the Platform
 
-- Swap Redis for another database.
-- Add new data sources or sinks.
-- Extend processing logic for new event types.
-- Integrate with cloud-native CI/CD pipelines.
+- Swap Redis with Cassandra or PostgreSQL
+- Extend consumer agent logic
+- Add support for multiple topics or routing rules
+- Deploy to GKE, EKS, or AKS using your kubeconfig
 
 ---
 
@@ -236,8 +219,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Enjoy building real-time, cloud-native data pipelines with ease!**
+**Build your real-time pipeline. Deploy in seconds. Monitor with ease.**
 
----
+—  
+For help, open an issue or contact the maintainer.
 
-*For questions or support, open an issue or contact the maintainer.*
